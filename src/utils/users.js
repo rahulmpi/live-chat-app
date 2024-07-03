@@ -1,37 +1,17 @@
+const Room =  require("../models/room")
+
 const users = []
-
-const addUser = ({ id, username, room }) => {
-    // Clean the data
-    username = username.trim().toLowerCase()
-    room = room.trim().toLowerCase()
-
-    // Validate the data
-    if (!username || !room) {
-        return {
-            error: 'Username and room are required!'
-        }
-    }
-
-    // Check for existing user
-    const existingUser = users.find((user) => {
-        return user.room === room && user.username === username
-    })
-
-    // Validate username
-    if (existingUser) {
-        return {
-            error: 'Username is in use!'
-        }
-    }
-
-    // Store user
-    const user = { id, username, room }
-    users.push(user)
-    return { user }
+const addUser = async ({ id, username, room }) => {
+    const rooms = await Room.findOne({ name : room.toLowerCase()});
+    const user = rooms.members.find((user) => user.userName === username.toLowerCase())
+    user.socketId = id
+    await rooms.save()
+    users.push({room: rooms.name, name: username.toLowerCase(), socketId: id})
+    return users[users.length - 1]
 }
 
 const removeUser = (id) => {
-    const index = users.findIndex((user) => user.id === id)
+    const index = users.findIndex((user) => user.socketId === id)
 
     if (index !== -1) {
         return users.splice(index, 1)[0]
@@ -39,11 +19,10 @@ const removeUser = (id) => {
 }
 
 const getUser = (id) => {
-    return users.find((user) => user.id === id)
+    return users.find((user) => user.socketId === id)
 }
 
 const getUsersInRoom = (room) => {
-    room = room.trim().toLowerCase()
     return users.filter((user) => user.room === room)
 }
 
